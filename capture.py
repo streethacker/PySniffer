@@ -20,7 +20,12 @@ PATTERN_OF_FILTER = re.compile(r"""
 		$	#end of string
 		""", re.IGNORECASE | re.VERBOSE)
 
-class DefaultError(Exception): pass
+class DefaultError(Exception): 
+	"""
+	Unknown Error.
+	"""
+	pass
+
 class QueueOverflowError(DefaultError):
 	"""
 	Error: Cannot enqueue to a full queue.
