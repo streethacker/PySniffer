@@ -12,34 +12,38 @@ class DefaultError(Exception):
 class InvalidAccessError(DefaultError):
 	"""
 	Error: Cannot dequeue from an empty queue.
-	+---------------------------------------------------------+
+	+-----------------------------------------------------------------------+
 	Description:
 		Shared queue is empty. This exception is always raised
 	when the thread of Packets Handler runs much faster then
 	the thread of Packets Capture.
-	+---------------------------------------------------------+
+	+-----------------------------------------------------------------------+
 	"""
 	pass
 
 class IncompatibleProtoError(DefaultError):
 	"""
 	Error: No compatible protocol to use.
-	+----------------------------------------------------------+
+	+------------------------------------------------------------------------+
 	Description:
 		An unsupported protocol handler is needed. You may write
 	the handler by yourself, and copy the *.py file into the cur
 	-rent working directory.
-	+----------------------------------------------------------+
+	+------------------------------------------------------------------------+
 	"""
 	pass
 
 
 class PacketHandler:
-	ALL_PROTOS = ['ethernet', 'fddi', 'tr', 'ip', 'ip6', 'arp', 'rarp', \
-				 'decent', 'tcp', 'udp', 'icmp', 'http', 'dns', 'ftp', 'smtp']
+	ALL_PROTOS = ['ethernet', 'arp', 'rarp','ip', 'ip6', 'icmp', 'tcp', 'udp', 'http', 'dns', 'ftp', 'smtp']
+
+	_counter = 1
 
 	_ret = """
-	Time: %s	
+	#######################################
+	Time: %s                               
+	Total Packets: %s
+	#######################################	
 	+--------------------------------------------------------------------------------------------+
 	%s
 
@@ -55,30 +59,26 @@ class PacketHandler:
 		self._cache = {}
 
 	def _proto_unpack(self):
+		_packet = self._dequeue()
+		_time_stamp = _packet.keys()[0]
+		_eth_object = _packet.values()[0]
+		self._cache['time'] = _time_stamp
+		self._cache['ethernet'] = _eth_object		
 		try:
-			_packet = self._dequeue()
-			_time_stamp = _packet.keys()[0]
-			_eth_object = _packet.values()[0]
-			self._cache['time'] = _time_stamp
-			self._cache['ethernet'] = _eth_object		
+			_proto = _eth_object.data.__class__.__name__.lower()
+			self._cache[_proto] = _eth_object.data
 			try:
-				_proto = _eth_object.data.__class__.__name__.lower()
-				self._cache[_proto] = _eth_object.data
+				_proto = _eth_object.data.data.__class__.__name__.lower()
+				self._cache[_proto] = _eth_object.data.data
 				try:
-					_proto = _eth_object.data.data.__class__.__name__.lower()
-					self._cache[_proto] = _eth_object.data.data
-					try:
-						_proto = _eth_object.data.data.data.__class__.__name__.lower()
-						self._cache[_proto] = _eth_object.data.data.data
-					except AttributeError:
-						pass
+					_proto = _eth_object.data.data.data.__class__.__name__.lower()
+					self._cache[_proto] = _eth_object.data.data.data
 				except AttributeError:
 					pass
 			except AttributeError:
 				pass
-		except InvalidAccessError as err:
-			print err.__doc__
-			sys.exit(1)
+		except AttributeError:
+			pass
 			
 	def _load_handler(self):
 		_handlers = [os.path.splitext(f)[0] for f in os.listdir(self._load) if os.path.splitext(f)[1] == '.py']
@@ -105,21 +105,29 @@ class PacketHandler:
 				_slices.append(_data[(i-1)*94:i*94])
 		_ret = '\n\t'.join(_slices)
 		return _ret
-		
+	
+	def _proto_format(self, _proto_dict):
+		_ret = ''
+		_keys = _proto_dict.keys()
+		for _proto in self.ALL_PROTOS:
+			if _proto in _keys:
+				_ret += _proto_dict[_proto]
+		return _ret
 
 	def _parse(self, _handlers):
 		self._proto_unpack()
 		_data_field = self._data_format()
 		_time_stamp = self._time_format()
 		del self._cache['time']
-		_ret = ""
+		_proto_dict = {}
 		try:
 			try:
 				for _proto, _object in self._cache.items():
 					if _proto in self.ALL_PROTOS:
 						_Method = getattr(_handlers[_proto], 'getAttributes')
-						_ret += _Method(_object)
-				return self._ret % (_time_stamp, _ret, _data_field)
+						_proto_dict[_proto] = _Method(_object)
+				_ret = self._proto_format(_proto_dict)
+				return self._ret % (_time_stamp, self._counter, _ret, _data_field)
 			except KeyError:
 				raise IncompatibleProtoError
 		except IncompatibleProtoError as err:
@@ -128,9 +136,14 @@ class PacketHandler:
 	def output(self):
 		_handlers = self._load_handler()
 		while True:
-			_ret = self._parse(_handlers)
-			print _ret
-			time.sleep(2)
+			try:
+				_ret = self._parse(_handlers)
+				print _ret
+				self._counter += 1
+				time.sleep(2)
+			except InvalidAccessError as err:
+				time.sleep(1)
+				continue
 
 if __name__ == "__main__":
 	pass
