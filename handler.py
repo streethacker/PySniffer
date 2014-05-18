@@ -2,8 +2,8 @@
 #-*- coding:utf-8 -*-
 
 import dpkt, pcap
-import os, sys
-import time
+import os, sys, math
+import time, binascii
 
 class DefaultError(Exception):
 	"Unknown Error"
@@ -35,9 +35,18 @@ class IncompatibleProtoError(DefaultError):
 
 
 class PacketHandler:
+	ALL_PROTOS = ['ethernet', 'fddi', 'tr', 'ip', 'ip6', 'arp', 'rarp', \
+				 'decent', 'tcp', 'udp', 'icmp', 'http', 'dns', 'ftp', 'smtp']
+
 	_ret = """
 	Time: %s	
 	+--------------------------------------------------------------------------------------------+
+	%s
+
+	+------------------------------------DATA-START----------------------------------------------+
+	DATA:
+	%s
+	+-------------------------------------DATA-END-----------------------------------------------+
 	"""
 
 	def __init__(self, queue, load=os.getcwd()):
@@ -69,7 +78,7 @@ class PacketHandler:
 				pass
 		except InvalidAccessError as err:
 			print err.__doc__
-			time.sleep(5)
+			sys.exit(1)
 			
 	def _load_handler(self):
 		_handlers = [os.path.splitext(f)[0] for f in os.listdir(self._load) if os.path.splitext(f)[1] == '.py']
@@ -85,16 +94,32 @@ class PacketHandler:
 	def _time_format(self):
 		return time.strftime('%c',time.gmtime(self._cache['time']+8*3600))
 
+	def _data_format(self):
+		_data = binascii.hexlify(repr(self._cache['ethernet']))
+		_part_num = int(math.ceil(len(_data) / 94.0))
+		_slices = []
+		for i in range(1, _part_num+1):
+			if i * 94 > len(_data):
+				_slices.append(_data[(i-1)*94:])
+			else:
+				_slices.append(_data[(i-1)*94:i*94])
+		_ret = '\n\t'.join(_slices)
+		return _ret
+		
+
 	def _parse(self, _handlers):
 		self._proto_unpack()
-		_ret = self._ret % self._time_format()
+		_data_field = self._data_format()
+		_time_stamp = self._time_format()
+		del self._cache['time']
+		_ret = ""
 		try:
 			try:
 				for _proto, _object in self._cache.items():
-					if _proto == 'icmp':
+					if _proto in self.ALL_PROTOS:
 						_Method = getattr(_handlers[_proto], 'getAttributes')
 						_ret += _Method(_object)
-				return _ret
+				return self._ret % (_time_stamp, _ret, _data_field)
 			except KeyError:
 				raise IncompatibleProtoError
 		except IncompatibleProtoError as err:
