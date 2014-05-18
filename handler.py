@@ -2,7 +2,8 @@
 #-*- coding:utf-8 -*-
 
 import dpkt, pcap
-import os
+import os, sys
+import time
 
 class DefaultError(Exception):
 	"Unknown Error"
@@ -39,7 +40,7 @@ class PacketHandler:
 	+--------------------------------------------------------------------------------------------+
 	"""
 
-	def __init__(self, queue, load):
+	def __init__(self, queue, load=os.getcwd()):
 		self._queue = queue
 		self._load = load
 		self._cache = {}
@@ -47,8 +48,8 @@ class PacketHandler:
 	def _proto_unpack(self):
 		try:
 			_packet = self._dequeue()
-			_time_stamp = _packet.key()
-			_eth_object = _packet.value()
+			_time_stamp = _packet.keys()[0]
+			_eth_object = _packet.values()[0]
 			self._cache['time'] = _time_stamp
 			self._cache['ethernet'] = _eth_object		
 			try:
@@ -68,6 +69,7 @@ class PacketHandler:
 				pass
 		except InvalidAccessError as err:
 			print err.__doc__
+			time.sleep(5)
 			
 	def _load_handler(self):
 		_handlers = [os.path.splitext(f)[0] for f in os.listdir(self._load) if os.path.splitext(f)[1] == '.py']
@@ -81,18 +83,29 @@ class PacketHandler:
 			return _packet
 
 	def _time_format(self):
-		pass
+		return time.strftime('%c',time.gmtime(self._cache['time']+8*3600))
 
-	def parse(self):
-		_handlers = self._load_handler()
-		self._ret = self._ret % self._time_format()
+	def _parse(self, _handlers):
+		self._proto_unpack()
+		_ret = self._ret % self._time_format()
 		try:
 			try:
 				for _proto, _object in self._cache.items():
-					_Method = getattr(_handlers[_proto], 'getAttributes')
-					self._ret += _Method(_object)
-				return self._ret
+					if _proto == 'icmp':
+						_Method = getattr(_handlers[_proto], 'getAttributes')
+						_ret += _Method(_object)
+				return _ret
 			except KeyError:
 				raise IncompatibleProtoError
 		except IncompatibleProtoError as err:
 			print err.__doc__
+
+	def output(self):
+		_handlers = self._load_handler()
+		while True:
+			_ret = self._parse(_handlers)
+			print _ret
+			time.sleep(2)
+
+if __name__ == "__main__":
+	pass

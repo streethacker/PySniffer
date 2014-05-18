@@ -3,19 +3,20 @@
 
 import dpkt, pcap
 import re
+import time
 
 PATTERN_OF_FILTER = re.compile(r"""
 		^	#beginning of string
 		((ether|fddi|tr|ip|ip6|arp|rarp|decent|tcp|udp)?\s*	#proto(optional)
 		 (src|dst)?\s*						#dir(optional)
-		 (host|net|port){1}\s+				#type(actually optional,but here we force it to be specified)
-		 (\d|[a-zA-Z\._])+					#id(specified, could be a number or a string)
+		 (host|net|port)?\s*				#type(actually optional,but here we force it to be specified)
+		 (\d|[a-zA-Z\._])*					#id(specified, could be a number or a string)
 		)
 		(\s*(and|or|not){1}\s+
 		 (ether|fddi|tr|ip|ip6|arp|rarp|decent|tcp|udp)?\s*
 		 (src|dst)?\s*
-		 (host|net|port){1}\s+
-		 (\d|[a-zA-Z\._])+
+		 (host|net|port)?\s*
+		 (\d|[a-zA-Z\._])*
 		)*									#more groups of filter rules(concatenated by and, or, not)
 		$	#end of string
 		""", re.IGNORECASE | re.VERBOSE)
@@ -87,20 +88,20 @@ class AllRejectsError(OSError):
 
 
 class PacketCapture:
-	def __init__(self, queue, filterString, name='eth0', snaplen=65535, promisc=True, timeout_ms=None, immediate=False):
+	def __init__(self, queue, filterString, name='eth0', snaplen=65535, promisc=True, immediate=False):
 		self._queue = queue
 		self._filterString = filterString
 		self._pc = None
 		self._name = name
 		self._snaplen = snaplen
 		self._promisc = promisc
-		self._timeout_ms = timeout_ms
 		self._immediate = immediate
 
 	def _create_pcap_object(self):
 		try:
 			try:
-				self._pc = pcap.pcap(self._name, self._snaplen, self._promisc, self._timeout_ms, self._immediate)
+				self._pc = pcap.pcap(name=self._name, snaplen=self._snaplen, promisc=self._promisc, \
+						immediate=self._immediate)
 			except OSError as err:
 				if err.message.find("No such device exists"):
 					raise UnknownDeviceError
@@ -146,10 +147,11 @@ class PacketCapture:
 			for ts, pkt in self._pc:
 				_eth_object = dpkt.ethernet.Ethernet(pkt)
 				_time_stamp = ts
-				_packet[ts] = _eth_object
+				_packet[_time_stamp] = _eth_object
 				self._enqueue(_packet)
 		except QueueOverflowError as err:
 			print err.__doc__
+			time.sleep(5)
 			
 if __name__ == "__main__":
 	pass
