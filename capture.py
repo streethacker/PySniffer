@@ -2,24 +2,8 @@
 #-*- coding:utf-8 -*-
 
 import dpkt, pcap
-import re
+import sys
 import time
-
-PATTERN_OF_FILTER = re.compile(r"""
-		^	#beginning of string
-		((ether|fddi|tr|ip|ip6|arp|rarp|decent|tcp|udp)?\s*	#proto(optional)
-		 (src|dst)?\s*						#dir(optional)
-		 (host|net|port)?\s*				#type(actually optional,but here we force it to be specified)
-		 (\d|[a-zA-Z\._])*					#id(specified, could be a number or a string)
-		)
-		(\s*(and|or|not){1}\s+
-		 (ether|fddi|tr|ip|ip6|arp|rarp|decent|tcp|udp)?\s*
-		 (src|dst)?\s*
-		 (host|net|port)?\s*
-		 (\d|[a-zA-Z\._])*
-		)*									#more groups of filter rules(concatenated by and, or, not)
-		$	#end of string
-		""", re.IGNORECASE | re.VERBOSE)
 
 class DefaultError(Exception): 
 	"""
@@ -106,32 +90,30 @@ class PacketCapture:
 						immediate=self._immediate)
 			except OSError as err:
 				if err.message.find("exists"):
-					raise UnknownDeviceError
+					raise UnknownDeviceError, UnknownDeviceError.__doc__
 				elif err.message.find("permission"):
-					raise PermissionError
+					raise PermissionError, PermissionError.__doc__
 				else:
-					raise DefaultError
+					raise DefaultError, DefaultError.__doc__
 		except (PermissionError, UnknownDeviceError, DefaultError) as err:
-			print err.__doc__
-
-	def _check_filter_string(self):
-		if not PATTERN_OF_FILTER.search(self._filterString):
-			raise BadFilterSyntaxError
-		else:
-			return
+			print str(err)
+			sys.exit(2)
 
 	def _setfilter(self):
 		try:
 			try:
-				self._check_filter_string()
 				self._pc.setfilter(self._filterString)
-			except (BadFilterSyntaxError, OSError) as err:
-				if isinstance(err, OSError):
-					raise AllRejectsError
+			except OSError as err:
+				if err.message.find('syntax'):
+					raise BadFilterSyntaxError, BadFilterSyntaxError.__doc__
+				elif err.message.find('rejects'):
+					raise AllRejectsError, AllRejectsError.__doc__
 				else:
-					print err.__doc__
-		except AllRejectsError as err:
-			print err.__doc__
+					raise DefaultError, DefaultError.__doc__
+		except (BadFilterSyntaxError, AllRejectsError, DefaultError) as err:
+			print str(err)
+			sys.exit(2)
+
 				
 	def _enqueue(self, item):
 		if self._queue.isFull():
@@ -148,7 +130,7 @@ class PacketCapture:
 				_time_stamp = ts
 				_packet[_time_stamp] = _eth_object
 				self._enqueue(_packet)
-			except QueueOverflowError as err:
+			except QueueOverflowError:
 				time.sleep(1)
 			
 if __name__ == "__main__":

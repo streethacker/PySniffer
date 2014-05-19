@@ -129,9 +129,9 @@ class PacketHandler:
 				_ret = self._proto_format(_proto_dict)
 				return self._ret % (_time_stamp, self._counter, _ret, _data_field)
 			except KeyError:
-				raise IncompatibleProtoError
+				raise IncompatibleProtoError, IncompatibleProtoError.__doc__
 		except IncompatibleProtoError as err:
-			print err.__doc__
+			print str(err)
 
 	def output(self):
 		_handlers = self._load_handler()
@@ -141,7 +141,7 @@ class PacketHandler:
 				print _ret
 				self._counter += 1
 				time.sleep(2)
-			except InvalidAccessError as err:
+			except InvalidAccessError:
 				time.sleep(1)
 				continue
 
