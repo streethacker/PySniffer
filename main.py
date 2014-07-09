@@ -10,9 +10,16 @@ class DefaultError(Exception): pass
 
 def usage():
 	"""
-	
+	Command Error:
+	+----------------------------------------------------------------------------------------+
+	You can simply try: 
+	python main.py -n MacName -f Filter -l Path
+
+	Or maybe you need to run it by su- as follows:
+	sudo python main.py -n MacName -f Filter -l Path
+	+----------------------------------------------------------------------------------------+
 	"""
-	print __doc__
+	print usage.__doc__
 
 def main():
 	_filterString, _name, _snaplen, _promisc, _immediate, _load = 'icmp', 'eth0', 65535, True, False, os.getcwd()
@@ -20,7 +27,6 @@ def main():
 		opts, args = getopt.getopt(sys.argv[1:], "hf:n:s:pil:", \
 				["help", "filter=", "name=", "snaplen=", "promisc","immediate", "load="])
 	except getopt.GetoptError as err:
-		print str(err)
 		usage()
 		sys.exit(2)
 

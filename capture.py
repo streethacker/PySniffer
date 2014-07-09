@@ -89,9 +89,9 @@ class PacketCapture:
 				self._pc = pcap.pcap(name=self._name, snaplen=self._snaplen, promisc=self._promisc, \
 						immediate=self._immediate)
 			except OSError as err:
-				if err.message.find("exists"):
+				if str(err).find("exists") != -1:
 					raise UnknownDeviceError, UnknownDeviceError.__doc__
-				elif err.message.find("permission"):
+				elif str(err).find("permission") != -1:
 					raise PermissionError, PermissionError.__doc__
 				else:
 					raise DefaultError, DefaultError.__doc__
@@ -104,9 +104,9 @@ class PacketCapture:
 			try:
 				self._pc.setfilter(self._filterString)
 			except OSError as err:
-				if err.message.find('syntax'):
+				if str(err).find('syntax') != -1:
 					raise BadFilterSyntaxError, BadFilterSyntaxError.__doc__
-				elif err.message.find('rejects'):
+				elif str(err).find('rejects') != -1:
 					raise AllRejectsError, AllRejectsError.__doc__
 				else:
 					raise DefaultError, DefaultError.__doc__
