@@ -9,19 +9,22 @@ __hdr__ = (
 )
 """
 
+
 def getAttributes(_ethernet_object):
-	_ret = """
+    _ret = """
 	Proto Type: Ethernet
 	HWaddr Dst: %s
 	HWaddr Src: %s
 	Type: %s
 	"""
 
-	_dst = '%X : %X : %X : %X : %X : %X' % tuple(map(ord, list(_ethernet_object.dst)))
-	_src = '%X : %X : %X : %X : %X : %X' % tuple(map(ord, list(_ethernet_object.src)))
-	_type = hex(_ethernet_object.type)
+    _dst = '%X : %X : %X : %X : %X : %X' % tuple(
+        map(ord, list(_ethernet_object.dst)))
+    _src = '%X : %X : %X : %X : %X : %X' % tuple(
+        map(ord, list(_ethernet_object.src)))
+    _type = hex(_ethernet_object.type)
 
-	return _ret % (_dst, _src, _type)
+    return _ret % (_dst, _src, _type)
 
 if __name__ == "__main__":
-	pass
+    pass

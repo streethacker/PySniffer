@@ -16,8 +16,9 @@ __hdr__ = (
 )
 """
 
+
 def getAttributes(_ip_objcet):
-	_ret = """
+    _ret = """
 	Proto Type: IP
 	Version: %s
 	Header Length: %s
@@ -32,19 +33,20 @@ def getAttributes(_ip_objcet):
 	Dst: %s
 	"""
 
-	_version = _ip_objcet.v
-	_header_length = _ip_objcet.hl
-	_tos = _ip_objcet.tos
-	_total_length = _ip_objcet.len
-	_id = _ip_objcet.id
-	_offset = _ip_objcet.off
-	_ttl = _ip_objcet.ttl
-	_upper_proto = _ip_objcet.p
-	_sum = _ip_objcet.sum
-	_src = '%d.%d.%d.%d' % tuple(map(ord, list(_ip_objcet.src)))  
-	_dst = '%d.%d.%d.%d' % tuple(map(ord, list(_ip_objcet.dst)))
+    _version = _ip_objcet.v
+    _header_length = _ip_objcet.hl
+    _tos = _ip_objcet.tos
+    _total_length = _ip_objcet.len
+    _id = _ip_objcet.id
+    _offset = _ip_objcet.off
+    _ttl = _ip_objcet.ttl
+    _upper_proto = _ip_objcet.p
+    _sum = _ip_objcet.sum
+    _src = '%d.%d.%d.%d' % tuple(map(ord, list(_ip_objcet.src)))
+    _dst = '%d.%d.%d.%d' % tuple(map(ord, list(_ip_objcet.dst)))
 
-	return _ret % (_version, _header_length, _tos, _total_length, _id, _offset, _ttl, _upper_proto, _sum, _src, _dst)
+    return _ret % (_version, _header_length, _tos, _total_length,
+                   _id, _offset, _ttl, _upper_proto, _sum, _src, _dst)
 
 if __name__ == "__main__":
-	pass
+    pass
